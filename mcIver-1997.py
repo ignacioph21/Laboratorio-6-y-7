@@ -58,8 +58,6 @@ cs = plt.contour(R, Y, np.real(psi(R,Y)), levels = [4])
 plt.axhline(0, color = "black")
 plt.gca().set_aspect('equal')
 plt.gca().invert_yaxis()
-plt.xticks(100)
-plt.yticks(100)
 plt.grid()
 plt.show()
 
