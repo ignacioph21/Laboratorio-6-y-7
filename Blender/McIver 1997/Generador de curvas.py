@@ -55,9 +55,27 @@ y = np.linspace(0, 5, 100)
 R, Y = np.meshgrid(r,y)
 
 plt.gca().set_aspect('equal')
-cs = plt.contour(R, Y, np.real(psi(R,Y)), levels = [40, 20, 16, 12, 8, 4][::-1])
+cs = plt.contour(R, Y, np.real(psi(R,Y)), levels = [40, 20, 16, 12, 8, 4, 3, 2, 1][::-1])
 plt.hlines(0, 0, 10)
 plt.scatter([c], [0]) 
 plt.gca().invert_yaxis()
 
+##plt.close()
+##
+### Como extraer contours con matplotlib:
+##p = cs.collections[6].get_paths()[0]
+##v = p.vertices
+##x = v[:,0]
+##y = v[:,1]
+##
+##with open("curva.obj", "w") as f:
+##    for i in range(len(x)):
+##        f.write("v {} {} {}\n".format(x[i], y[i], 0))
+##
+##print("Curva exportada como curva.obj")
+##
+##
+##
+##
+##plt.plot(x, y)
 plt.show()
