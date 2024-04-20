@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import bisect, minimize_scalar
 from scipy.special import jn_zeros
-from McIver_1997 import psi_escalar
+from fuciones_corriente import McIver1997
 
 class NoRootsFoundError(Exception):
     pass
@@ -19,16 +19,7 @@ def normalize(X):
     """Para obtener la dirección de un vector o signo de un escalar"""
     return X / np.linalg.norm(X)
 
-def rk4_step(dX, X, ds):
-    """Devuelve el paso de la curva con runge-kutta 4. No toma variable independiente en el argumento."""
-    K1 = dX(X)
-    K2 = dX(X + K1*ds/2)
-    K3 = dX(X + K2*ds/2)
-    K4 = dX(X + K3*ds)
-    K = K1 + 2*K2 + 2*K3 + K4
-    return normalize(K)*ds
-
-def step_sign(X, step, center_point, orientation):
+def sign_corrected_step(X, step, center_point, orientation):
     """Devuelve el signo que debería tomar un paso si se quiere recorrer la curva con cierta orientación"""
     direction = np.array([-(X[1] - center_point[1]), X[0] - center_point[0]])
     match orientation: 
@@ -36,7 +27,7 @@ def step_sign(X, step, center_point, orientation):
             sign = normalize(step @ direction)
         case "cw":
             sign = - normalize(step @ direction)
-    return sign
+    return sign*step
 
 def get_root_of_func2d_slice(f, var_index, fixed_arg_value, bounds, tol=1e-2):
     """Para obtener la raíz de una curva de la función 1D dada por una función 2D con un argumento fijo. Usa el método de bisección de scipy."""
@@ -46,7 +37,7 @@ def get_root_of_func2d_slice(f, var_index, fixed_arg_value, bounds, tol=1e-2):
         case 1:
             f_ = lambda y_: f(fixed_arg_value, y_)
         case _:
-            raise Exception("")
+            raise Exception("2D Function: var_index must be 0 or 1.")
 
     min_f = minimize_scalar(f_, bounds=bounds)
     max_f = minimize_scalar(lambda x: -f_(x), bounds=bounds)
@@ -102,25 +93,24 @@ def func2d_root_search(f, bounds, ds=1e-2, ss =1e-1, orientation="cc", center_po
         fr = f(r+ds, y) - f0
         fy = f(r, y+ds) - f0
         dX = np.array([fy, -fr])
-        return normalize(dX)
+        return normalize(dX)*ds
 
     X = get_first_root(f, bounds, dx=ds, tol=tol)
     yield X
 
-    s = 0
     i = 0
     x, y = X
     while (xi <= x <= xf and yi <= y <= yf) and i < maxiter:
-        step = rk4_step(dX, X, ds)
-        X = X + step*step_sign(X, step, center_point, orientation)
+        step = dX(X)
+        X = X + sign_corrected_step(X, step, center_point, orientation)
         x, y = X
         dx, dy = step
 
         try:
             if abs(dx/dy) <= 1:  # poco cambio en r, mucho cambio en y --> congelo y, busco raíz en r 
-                X = get_root_of_func2d_slice(f, var_index=0, fixed_arg_value = y, bounds = (x-ss, x+ss), tol=tol)
+                X = get_root_of_func2d_slice(f, var_index=0, fixed_arg_value=y, bounds=(x-ss, x+ss), tol=tol)
             else:                # poco cambio en y, mucho cambio en r --> congelo r, busco raíz en y
-                X = get_root_of_func2d_slice(f, var_index=1, fixed_arg_value = x, bounds = (y-ss, y+ss), tol=tol)
+                X = get_root_of_func2d_slice(f, var_index=1, fixed_arg_value=x, bounds=(y-ss, y+ss), tol=tol)
 
         except Exception as e:
             print(e)
@@ -129,28 +119,33 @@ def func2d_root_search(f, bounds, ds=1e-2, ss =1e-1, orientation="cc", center_po
         i += 1
         yield X
 
-h = 12
-c = 2.4048
-ds = 2e-2
+if __name__ == "__main__":
+    h = 12
+    c = jn_zeros(0,1)[0]
+    a = 50
+    ds = 2e-2
 
-r_bounds = (0.1, c-ds)
-y_bounds = (-0.1, 10)
-bounds = (r_bounds, y_bounds)
+    psi_escalar = McIver1997(c, a).psi_escalar
+    f = lambda x, y: np.real(psi_escalar(x,y) - h)
+    
+    y_bounds = (-0.1, 10)
+    r_bounds = (0.1, c-ds)
+    bounds = (r_bounds, y_bounds)
 
-f = lambda x, y: np.real(psi_escalar(x,y) - h)
+    roots1 = func2d_root_search(f, bounds, ds=ds, ss=1e-1, orientation="cw", center_point=np.array([c,0]))
 
-roots = func2d_root_search(f, bounds, ds=ds, ss=1e-1, orientation="cw", center_point=np.array([c,0]))
-curva = np.array(list(roots))
+    r_bounds = (c+ds, 10)
+    bounds = (r_bounds, y_bounds)
 
-plt.plot(curva[:,0], curva[:,1], ".-")
+    roots2 = func2d_root_search(f, bounds, ds=ds, ss=1e-1, orientation="cw", center_point=np.array([c,0]))
+    
+    curva = np.array(list(roots1) + list(roots2))
 
-r_bounds = (c+ds, 10)
-bounds = (r_bounds, y_bounds)
-roots = func2d_root_search(f, bounds, ds=ds, ss=1e-1, orientation="cw", center_point=np.array([c,0]))
-curva = np.array(list(roots))
-
-plt.plot(curva[:,0], curva[:,1], ".-")
-
-plt.axhline("0")
-plt.gca().set_aspect("equal")
-plt.show()
+    plt.figure()
+    ax = plt.axes()
+    ax.set_aspect("equal")
+    ax.plot(curva[:,0], curva[:,1], ".-")
+    ax.axhline("0", color = "k")
+    ax.set_yticks(np.arange(-0.1, 2, 0.5), np.arange(-0.1, 2, 0.5))
+    plt.grid()
+    plt.show()
