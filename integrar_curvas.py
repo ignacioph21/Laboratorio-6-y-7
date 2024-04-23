@@ -4,6 +4,9 @@ Idea:
 2. Encontrar derivadas parciales de psi en ese punto.
 3. Moverse ortogonal a las derivadas parciales (la curva implícita tiene pendiente -fr/fy o algo así). 
 4. Volver a buscar una raíz de la función (si existe), con el parámetro p0 dado por (3).
+PARA HACER: 
+- Agregar un P0 en func2d_root_search
+- Agregar opción singularities para que esquive ciertos puntos.
 """
 
 import numpy as np
@@ -16,21 +19,28 @@ class NoRootsFoundError(Exception):
     pass
 
 def normalize(X):
-    """Para obtener la dirección de un vector o signo de un escalar"""
+    """Devuelve el signo/dirección del float/ndarray X"""
     return X / np.linalg.norm(X)
 
-def sign_corrected_step(X, step, center_point, orientation):
-    """Devuelve el signo que debería tomar un paso si se quiere recorrer la curva con cierta orientación"""
-    direction = np.array([-(X[1] - center_point[1]), X[0] - center_point[0]])
-    match orientation: 
-        case "cc":
-            sign = normalize(step @ direction)
-        case "cw":
-            sign = - normalize(step @ direction)
-    return sign*step
-
-def get_root_of_func2d_slice(f, var_index, fixed_arg_value, bounds, tol=1e-2):
-    """Para obtener la raíz de una curva de la función 1D dada por una función 2D con un argumento fijo. Usa el método de bisección de scipy."""
+def root_of_2Dfunc_trace(f, var_index, bounds, fixed_arg_value, tol=1e-4):
+    """
+    Encuentra una raíz de una función 2D fijando uno de sus argumentos y variando el otro dentro de los `bounds` dados. 
+    Usa la función `bisect` de Scipy.
+    ## Parámetros
+    f : function
+        Tunción 2D. 
+    var_index : int
+        0 o 1, índice de la variable "libre". 
+    bounds : tuple
+        Límites del intervalo donde se vá a buscar la raíz. 
+    fixed_arg_value : float
+        Valor de la variable fija. 
+    tol : float
+        Tolerancia del método de bisección al computar la raíz. 
+    # Devuelve
+    root : ndarray
+        Coordenadas de la raíz encontrada. 
+    """
     match var_index:
         case 0:
             f_ = lambda x_: f(x_, fixed_arg_value)
@@ -43,50 +53,72 @@ def get_root_of_func2d_slice(f, var_index, fixed_arg_value, bounds, tol=1e-2):
     max_f = minimize_scalar(lambda x: -f_(x), bounds=bounds)
 
     if min_f.fun*(-max_f.fun) > 0: 
-        raise NoRootsFoundError("get_root_of_func2d_slice: no roots found within bounds.")
-    
+        raise NoRootsFoundError("root_of_func2D_trace: no roots found within bounds.")
+
     root = np.ones(2)*fixed_arg_value
     root[var_index] = bisect(f_, min_f.x, max_f.x, xtol=tol)
 
     return root
 
-def get_first_root(f, bounds, dx, tol=1e-2):
+def first_root_sweep(f, bounds, dx, tol=1e-4):
     """
-    Busca una raíz de la función de la siguiente forma:
-        1. Fija la primera variable, y busca una raíz de la función 1D dada por la variable fija. 
-        2. Si encuentra una raíz, la devuelve. Si no, suma dx a la primera variable. 
-        3. Repite el proceso. 
+    Barrer el espacio para encontrar una raíz. Al final no se usa esta función.
     """
     x_bounds, y_bounds = bounds
     xi, xf = x_bounds
-    xs = np.arange(xi, xf, dx)
+    xs = np.arange(xi, xf+dx, dx)
 
     # Buscar un valor de r donde el corte cambia de signo al variar y
     root = []
     for x in xs:
         try: 
-            root = get_root_of_func2d_slice(f, var_index=1, fixed_arg_value=x, bounds=y_bounds, tol=tol)
+            root = root_of_2Dfunc_trace(f, var_index=1, fixed_arg_value=x, bounds=y_bounds, tol=tol)
             break
         except NoRootsFoundError:
             pass
     
     if len(root) == 0:
-        raise NoRootsFoundError("get_first_root: No roots found within bounds.")
+        raise NoRootsFoundError("first_root_sweep: No roots found within bounds.")
+    
+    if dx > tol:
+        x_bounds = max(xi, root[0]-dx), root[0]
+        root = first_root_sweep(f, (x_bounds, y_bounds), dx=dx/10, tol=tol)
     
     return root
 
-def func2d_root_search(f, bounds, ds=1e-2, ss =1e-1, orientation="cc", center_point=np.array([0,0]), tol=1e-4, maxiter=1000):
+def implicit_2Dcurve(f, X0, 
+                      bounds=[(-np.inf, np.inf),(-np.inf, np.inf)], 
+                      ds=5e-2, search_size=1e-1, 
+                      direction_guide=lambda X, dX: 1, 
+                      tol=1e-4, maxiter=1000):
     """
-    Busca la curva de una función 2D dada por f(x,y) == 0. 
-        Bounds: (e.g. [(xi, xf), (yi, yf)]) determina el dominio donde busca la curva. 
-        ss: (search-size) el tamaño de la ventanita que determina los bounds donde se va a buscar la próxima raíz. 
-            Si es muy chico, capaz "se escapa la raíz". Si es muy grande, y la función no es biyectiva, puede encontrar otra raíz primero y "romper la curva". 
-        orientation, center_point: sirven para dererminar en que sentido se recorre la curva. 
+    Genera puntos en una curva implícita dada por \[f(x,y)=0\]. Funciona aproximando la tangente de la curva
+    en un punto usando diferencias finitas y moviéndose un paso ds a lo largo de la tangente para acercarse al siguiente punto. 
+    Después de esto utiliza la función de bisección de scipy para devolver el siguiente punto dentro de la tolerancia dada.
+
+    ## Parámetros:
+    f : function
+    X0 : ndarray
+        Punto de partida. Debe ser (dentro de la tolerancia de) una raíz de \[f(x,y)=0\].
+    bounds : list
+        Lista que contiene los límites de la primera variable (tuple) y los límites de la segunda variable (tuple).
+        La curva se calculará dentro de esos límites.
+    ds: float
+        Tamaño de los pasos sobre las tangentes.
+    search_size : float
+        Determina el intervalo donde la función de bisección de scipy busca el siguiente punto de la curva.
+        Demasiado grande y se puede perder la continuidad.
+    direction_guide : function
+    Una función f(X, dX) opcional para forzar que en X el paso dX se tome en una cierta dirección (impone un signo).
+    tol: float
+        Tolerancia del método a errores.
+    maxiter: int
+        Número máximo de pasos dados a lo largo de la curva.
+
+    ## Genera
+        X : ndarray
+        Las coordenadas del siguiente punto de la curva.
     """
-    x_bounds, y_bounds = bounds
-    xi, xf = x_bounds
-    yi, yf = y_bounds
-    
     def dX(X):
         r, y = X
         f0 = f(r, y)
@@ -94,58 +126,83 @@ def func2d_root_search(f, bounds, ds=1e-2, ss =1e-1, orientation="cc", center_po
         fy = f(r, y+ds) - f0
         dX = np.array([fy, -fr])
         return normalize(dX)*ds
-
-    X = get_first_root(f, bounds, dx=ds, tol=tol)
+    
+    x_bounds, y_bounds = bounds
+    xi, xf = x_bounds
+    yi, yf = y_bounds
+    
+    X = X0
     yield X
 
-    i = 0
     x, y = X
+    i = 0
     while (xi <= x <= xf and yi <= y <= yf) and i < maxiter:
         step = dX(X)
-        X = X + sign_corrected_step(X, step, center_point, orientation)
+        X = X + direction_guide(X, step)*step
+
         x, y = X
-        dx, dy = step
+        dx, dy = np.abs(step)
 
         try:
-            if abs(dx/dy) <= 1:  # poco cambio en r, mucho cambio en y --> congelo y, busco raíz en r 
-                X = get_root_of_func2d_slice(f, var_index=0, fixed_arg_value=y, bounds=(x-ss, x+ss), tol=tol)
-            else:                # poco cambio en y, mucho cambio en r --> congelo r, busco raíz en y
-                X = get_root_of_func2d_slice(f, var_index=1, fixed_arg_value=x, bounds=(y-ss, y+ss), tol=tol)
+            if dx/dy <= 1:  # poco cambio en r, mucho cambio en y --> congelo y, busco raíz en x 
+                X = root_of_2Dfunc_trace(f, var_index=0, fixed_arg_value=y, bounds=(x-search_size, x+search_size), tol=tol)
+            else:           # poco cambio en y, mucho cambio en r --> congelo x, busco raíz en y
+                X = root_of_2Dfunc_trace(f, var_index=1, fixed_arg_value=x, bounds=(y-search_size, y+search_size), tol=tol)
 
-        except Exception as e:
-            print(e)
+        except NoRootsFoundError:
+            print(f"implicit_2d_curve: Exited. Next point on curve not found.")
             break
 
-        i += 1
+        except Exception:
+            print(Exception)
+            break
+        
         yield X
+        i += 1
 
-if __name__ == "__main__":
-    h = 12
-    c = jn_zeros(0,1)[0]
-    a = 50
-    ds = 2e-2
+        if i > 10 and np.linalg.norm(X-X0) < ds: 
+            print(f"implicit_2d_curve: Exited. Reached start point.")
+            break
 
-    psi_escalar = McIver1997(c, a).psi_escalar
-    f = lambda x, y: np.real(psi_escalar(x,y) - h)
-    
-    y_bounds = (-0.1, 10)
-    r_bounds = (0.1, c-ds)
-    bounds = (r_bounds, y_bounds)
+def straight_guide(direction):
+    def guide(X, step):
+        """Devuelve 1 si el producto escalar de `step` y `direction` es mayor a 0, o -1 en caso contrario."""
+        return normalize(step @ direction)
+    return guide
 
-    roots1 = func2d_root_search(f, bounds, ds=ds, ss=1e-1, orientation="cw", center_point=np.array([c,0]))
+def circular_guide(center_point, orientation):
+    def guide(X, step):
+        """Devuelve 1 si la orientación de `step` respecto a `center_point` corresponde a `orientation`, -1 si no"""
+        direction = np.array([-(X[1] - center_point[1]), X[0] - center_point[0]])
+        match orientation: 
+            case "ccw":
+                sign_correction = normalize(step @ direction)
+            case "cw":
+                sign_correction = - normalize(step @ direction)
+        return sign_correction
+    return guide
 
-    r_bounds = (c+ds, 10)
-    bounds = (r_bounds, y_bounds)
+h = 12
+c = jn_zeros(0,2)[1]
+a = 50
+ds = 2e-2
 
-    roots2 = func2d_root_search(f, bounds, ds=ds, ss=1e-1, orientation="cw", center_point=np.array([c,0]))
-    
-    curva = np.array(list(roots1) + list(roots2))
+psi_escalar = McIver1997(c=c, a=a).psi_escalar
+f = lambda x, y: np.real(psi_escalar(x,y) - h)
 
-    plt.figure()
-    ax = plt.axes()
-    ax.set_aspect("equal")
-    ax.plot(curva[:,0], curva[:,1], ".-")
-    ax.axhline("0", color = "k")
-    ax.set_yticks(np.arange(-0.1, 2, 0.5), np.arange(-0.1, 2, 0.5))
-    plt.grid()
-    plt.show()
+y_bounds = (-0.1, np.inf)
+r_bounds = (ds, np.inf)
+bounds = (r_bounds, y_bounds)
+
+X0 = root_of_2Dfunc_trace(f, 0, (ds, c-ds), y_bounds[0], tol=1e-4)
+roots = implicit_2Dcurve(f, X0, bounds, ds=ds, direction_guide=circular_guide((c,0),"cw"), tol=1e-4, maxiter=1000)
+curva = np.array(list(roots)).T
+
+plt.figure()
+ax = plt.axes()
+ax.plot(curva[0], curva[1], ".-", color="navy", lw=1.5)
+ax.axhline(0, color = "k")
+ax.axvline(0, color = "k")
+ax.invert_yaxis()
+ax.set_aspect("equal")
+plt.show()
