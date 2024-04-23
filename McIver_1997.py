@@ -57,7 +57,9 @@ R, Y = np.meshgrid(r,y)
 plt.gca().set_aspect('equal')
 cs = plt.contour(R, Y, np.real(psi(R,Y)), levels = [40, 20, 16, 12, 8, 4, 3, 2, 1][::-1])
 plt.hlines(0, 0, 10)
-plt.scatter([c], [0]) 
+plt.scatter([c], [0])
+plt.xlabel("r")
+plt.ylabel("y")
 plt.gca().invert_yaxis()
 
 
