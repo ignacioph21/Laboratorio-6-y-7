@@ -182,15 +182,15 @@ def circular_guide(center_point, orientation):
         return sign_correction
     return guide
 
-h = 12
-c = jn_zeros(0,2)[1]
-a = 50
-ds = 2e-2
+h = 16
+c = jn_zeros(0,2)[0]
+a = 100
+ds = 5e-2
 
 psi_escalar = McIver1997(c=c, a=a).psi_escalar
 f = lambda x, y: np.real(psi_escalar(x,y) - h)
 
-y_bounds = (-0.1, np.inf)
+y_bounds = (0, np.inf)
 r_bounds = (ds, np.inf)
 bounds = (r_bounds, y_bounds)
 
@@ -206,3 +206,14 @@ ax.axvline(0, color = "k")
 ax.invert_yaxis()
 ax.set_aspect("equal")
 plt.show()
+
+
+# Como extraer contours con matplotlib:
+# x = curva[0]
+# y = curva[1]
+
+# with open("curva a=16, ds=2e-2, tipo=McIver1997, cero=1.obj", "w") as f:
+#    for i in range(len(x)):
+#        f.write("v {} {} {}\n".format(x[i], y[i], 0))
+
+print("Curva exportada")
