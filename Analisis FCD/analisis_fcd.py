@@ -7,8 +7,8 @@ from pyfcd.fcd import calculate_carriers, fcd, normalize_image
 from pathlib import Path
 from skimage.io import imread, imsave
 
-images_folder = Path("Análisis FCD" + os.sep + "Images")
-output_folder = Path("Análisis FCD" + os.sep + "Output")
+images_folder = Path("Analisis FCD" + os.sep + "Images")
+output_folder = Path("Analisis FCD" + os.sep + "Output")
 reference_image = images_folder.joinpath("test image reference.tiff")
 definition_images = ["test image displaced.tiff"]
 roi = ()
