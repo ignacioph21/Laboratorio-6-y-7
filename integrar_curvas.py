@@ -185,7 +185,7 @@ def circular_guide(center_point, orientation):
 h = 16
 c = jn_zeros(0,2)[0]
 a = 100
-ds = 5e-2
+ds = 2e-2
 
 psi_escalar = McIver1997(c=c, a=a).psi_escalar
 f = lambda x, y: np.real(psi_escalar(x,y) - h)
@@ -197,6 +197,8 @@ bounds = (r_bounds, y_bounds)
 X0 = root_of_2Dfunc_trace(f, 0, (ds, c-ds), y_bounds[0], tol=1e-4)
 roots = implicit_2Dcurve(f, X0, bounds, ds=ds, direction_guide=circular_guide((c,0),"cw"), tol=1e-4, maxiter=1000)
 curva = np.array(list(roots)).T
+
+print(max(curva[0]))
 
 plt.figure()
 ax = plt.axes()
@@ -216,4 +218,4 @@ plt.show()
 #    for i in range(len(x)):
 #        f.write("v {} {} {}\n".format(x[i], y[i], 0))
 
-print("Curva exportada")
+# print("Curva exportada")
