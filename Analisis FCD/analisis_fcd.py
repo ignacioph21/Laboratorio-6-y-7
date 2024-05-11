@@ -7,11 +7,13 @@ from pyfcd.fcd import calculate_carriers, fcd, normalize_image
 from pathlib import Path
 from skimage.io import imread, imsave
 
-images_folder = Path("Images")
-output_folder = Path("Output")
+dir_path = Path(os.path.dirname(os.path.realpath(__file__)))
+images_folder = dir_path.joinpath("Images")
+output_folder =dir_path.joinpath("Output")
 reference_image = images_folder.joinpath("test image reference.tiff")
 definition_images = ["test image displaced.tiff"]
 roi = ()
+
 
 i_ref = imread(reference_image, as_gray=True)
 for file in definition_images:
@@ -19,9 +21,9 @@ for file in definition_images:
     output_file_path = output_folder.joinpath(f'output-{Path(file).stem}.tiff')
 
     i_def = imread(image_file_path, as_gray=True)
-    (x,y,w,h) = cv2.selectROI("a", i_def) if roi == () else roi
-    cv2.destroyWindow("a")
-    print("roi:", roi) # por si queremos volver a seleccionar la misma región
+    (x,y,w,h) = cv2.selectROI("i_def: seleccionar region de interes", i_def) if roi == () else roi
+    cv2.destroyWindow("i_def: seleccionar región de interés")
+    print("roi:", (x,y,w,h)) # por si queremos volver a seleccionar la misma región
 
     i_ref = np.array(i_ref, dtype=np.float32)
     i_def = np.array(i_def, dtype=np.float32)
@@ -42,7 +44,8 @@ for file in definition_images:
     plt.imshow(height_field)
     plt.show()    
 
-    (x,y,w,h) = cv2.selectROI((normalize_image(height_field) * 255.0).astype(np.uint8)) 
+    (x,y,w,h) = cv2.selectROI("height_field: seleccionar corte horizontal", (normalize_image(height_field) * 255.0).astype(np.uint8)) 
+    cv2.destroyWindow("height_field: seleccionar corte horizontal")
     fondo = np.mean(height_field[y:y+h,:], axis=0)
     plt.plot(fondo)
     plt.show()
