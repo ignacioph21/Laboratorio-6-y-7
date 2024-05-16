@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import bisect, minimize_scalar
 from scipy.special import jn_zeros
-from fuciones_corriente import McIver1997
+from fuciones_corriente import McIver1997, Hulme1983
 
 class NoRootsFoundError(Exception):
     pass
@@ -178,44 +178,42 @@ def circular_guide(center_point, orientation):
             case "ccw":
                 sign_correction = normalize(step @ direction)
             case "cw":
-                sign_correction = - normalize(step @ direction)
+                sign_correction = -normalize(step @ direction)
         return sign_correction
     return guide
 
-h = 16
-c = jn_zeros(0,2)[0]
-a = 100
-ds = 2e-2
+if __name__ == "__main__":  
+    g = 9.8       # m/s^2
+    w = 5*2*np.pi # Hz
+    K = w**2/g  # 1/m
+    h = 0.01      # m
+    d = K*h
+    c = jn_zeros(0,1)[0]
+    print(d)
+    psi = Hulme1983(R=c, d=d, N=200).psi
 
-psi_escalar = McIver1997(c=c, a=a).psi_escalar
-f = lambda x, y: np.real(psi_escalar(x,y) - h)
+    l = 16
+    f = lambda x, y: psi(x,y) - l
 
-y_bounds = (0, np.inf)
-r_bounds = (ds, np.inf)
-bounds = (r_bounds, y_bounds)
+    ds = 2e-2
+    y_bounds = (0, 2*d)
+    r_bounds1 = (ds, c-ds)
+    r_bounds2 = (c+ds, np.inf)
+    bounds1 = (r_bounds1, y_bounds)
+    bounds2 = (r_bounds2, y_bounds)
 
-X0 = root_of_2Dfunc_trace(f, 0, (ds, c-ds), y_bounds[0], tol=1e-4)
-roots = implicit_2Dcurve(f, X0, bounds, ds=ds, direction_guide=circular_guide((c,0),"cw"), tol=1e-4, maxiter=1000)
-curva = np.array(list(roots)).T
+    X01 = root_of_2Dfunc_trace(f, 0, (ds, c-ds), y_bounds[0], tol=1e-4)
+    X02 = root_of_2Dfunc_trace(f, 1, y_bounds, r_bounds2[0], tol=1e-4)
 
-print(max(curva[0]))
+    roots1 = implicit_2Dcurve(f, X01, bounds1, ds=ds, direction_guide=circular_guide((c,0),"cw"), tol=1e-4, maxiter=1000)
+    roots2 = implicit_2Dcurve(f, X02, bounds2, ds=ds, direction_guide=circular_guide((c,0),"cw"), tol=1e-4, maxiter=1000)
+    curva = np.array(list(roots1) + list(roots2)).T
 
-plt.figure()
-ax = plt.axes()
-ax.plot(curva[0], curva[1], ".-", color="navy", lw=1.5)
-ax.axhline(0, color = "k")
-ax.axvline(0, color = "k")
-ax.invert_yaxis()
-ax.set_aspect("equal")
-plt.show()
-
-
-# Como extraer contours con matplotlib:
-# x = curva[0]
-# y = curva[1]
-
-# with open("curva a=16, ds=2e-2, tipo=McIver1997, cero=1.obj", "w") as f:
-#    for i in range(len(x)):
-#        f.write("v {} {} {}\n".format(x[i], y[i], 0))
-
-# print("Curva exportada")
+    plt.figure()
+    ax = plt.axes()
+    ax.plot(curva[0], curva[1], ".-", color="navy", lw=1.5)
+    ax.axhline(0, color = "k")
+    ax.axvline(0, color = "k")
+    ax.invert_yaxis()
+    ax.set_aspect("equal")
+    plt.show()
