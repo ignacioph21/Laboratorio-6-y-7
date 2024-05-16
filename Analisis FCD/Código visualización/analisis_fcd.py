@@ -3,15 +3,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import time
+from pyfcd.auxiliars import selectSquareROI
 from pyfcd.fcd import calculate_carriers, fcd, normalize_image
 from pathlib import Path
 from skimage.io import imread, imsave
 
 roi = None
-allowed_formats = "tiff, tif, bmp"  
+allowed_formats = "tiff, tif, bmp, png"  
 
-reference_images_path = ".\Referencia_2"
-displaced_images_path = ".\Gota_2"
+reference_images_path = "..\Primeras pruebas\Referencia_2"
+displaced_images_path = "..\Primeras pruebas\Gota_2"
 
 reference_images = os.listdir(reference_images_path)
 displaced_images = os.listdir(displaced_images_path)
@@ -20,6 +21,7 @@ displaced_images = os.listdir(displaced_images_path)
 promediado = None 
 max_iter = 100
 N = 0
+
 
 for (reference, displaced) in zip(reference_images, displaced_images): 
     if reference[-3:] in allowed_formats:
@@ -32,7 +34,7 @@ for (reference, displaced) in zip(reference_images, displaced_images):
         i_def = cv2.imread(displaced_images_path + os.sep + displaced, cv2.IMREAD_UNCHANGED)
         
         if roi is None:
-            roi = cv2.selectROI("i_def: seleccionar región de interés", i_def) # Orden del roi: (x,y,w,h). 
+            roi = selectSquareROI("i_def: seleccionar región de interés", i_def) # Orden del roi: (x,y,w,h).  # cv2. $ 
             cv2.destroyWindow("i_def: seleccionar región de interés")
             print("roi:", roi) # por si queremos volver a seleccionar la misma región
 
@@ -48,7 +50,7 @@ for (reference, displaced) in zip(reference_images, displaced_images):
         print('done')
 
         t0 = time.time()
-        height_field = fcd(i_def, carriers)
+        height_field = fcd(i_def, carriers, unwrap=True)
         print(f'done in {time.time() - t0:.2}s\n')
 
         promediado += height_field
