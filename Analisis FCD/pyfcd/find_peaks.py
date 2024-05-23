@@ -3,6 +3,7 @@ import numpy as np
 from numpy import array
 from scipy.fft import fft2, fftshift, fftfreq
 from skimage.measure import regionprops, label
+import matplotlib.pyplot as plt
 
 from pyfcd.kspace import pixel2kspace
 
@@ -32,7 +33,8 @@ def peaks(img: array, thresshold, no_peaks, subpixel=False):
 
 def find_peaks(img):
     i_fft = fftshift(np.abs(fft2(img - np.mean(img))))
-
+    # plt.imshow(i_fft)
+    # plt.show()
     #TODO: optimize by doing calculating the radius in pixels, and use the disc function in skimage.draw, like in fcd.py:mask()
     def highpass_mask():
         k_space_rows = fftshift(fftfreq(i_fft.shape[0], 1 / (2.0 * np.pi)))

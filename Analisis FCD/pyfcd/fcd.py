@@ -6,14 +6,19 @@ import os.path
 import imageio.v2 as imageio
 import numpy as np
 from numpy import array
-from scipy.fft import fft2, ifft2, ifftshift
+from scipy.fft import fft2, ifft2, ifftshift, fftshift
 from skimage.draw import disk
 from skimage.io import imread
 from more_itertools import flatten
 
+from pyfcd.auxiliars import plot_with_arrows, plot_angles
 from pyfcd.fft_inverse_gradient import fftinvgrad
 from pyfcd.find_peaks import find_peaks
 from pyfcd.kspace import pixel2kspace
+import matplotlib.pyplot as plt
+
+from skimage.restoration import unwrap_phase
+
 
 
 def normalize_image(img):
@@ -38,27 +43,34 @@ class Carrier:
     ccsgn: array
 
 
-def calculate_carriers(i_ref):
+
+def calculate_carriers(i_ref, cal=1, show_carriers = False): # 1/(2*np.pi) 
     peaks = find_peaks(i_ref)
     peak_radius = np.linalg.norm(peaks[0] - peaks[1]) / 2
     i_ref_fft = fft2(i_ref)
 
-    carriers = [Carrier(peak, pixel2kspace(i_ref.shape, peak), peak_radius, mask, ccsgn(i_ref_fft, mask)) for mask, peak
+    if show_carriers:
+        plot_with_arrows(i_ref, peaks)
+
+    carriers = [Carrier(peak, pixel2kspace(i_ref.shape, peak, cal), peak_radius, mask, ccsgn(i_ref_fft, mask)) for mask, peak
                 in
                 [(ifftshift(peak_mask(i_ref.shape, peak, peak_radius)), peak) for peak in peaks]]
     return carriers
 
 
-def fcd(i_def, carriers: List[Carrier]):
+def fcd(i_def, carriers: List[Carrier], cal=1, show_angles = False, unwrap=False): # /(2*np.pi) 
     i_def_fft = fft2(i_def)
 
-    phis = [-np.angle(ifft2(i_def_fft * c.mask) * c.ccsgn) for c in carriers]
+    if show_angles:
+        plot_angles(np.angle(ifft2(i_def_fft * carriers[0].mask) * carriers[0].ccsgn), np.angle(ifft2(i_def_fft * carriers[1].mask) * carriers[1].ccsgn))
+    
+    phis = [-unwrap_phase(np.angle(ifft2(i_def_fft * c.mask) * c.ccsgn)) for c in carriers] if unwrap else [-np.angle(ifft2(i_def_fft * c.mask) * c.ccsgn) for c in carriers] # TODO: Acá agregué el unwrap.
 
     det_a = carriers[0].k_loc[1] * carriers[1].k_loc[0] - carriers[0].k_loc[0] * carriers[1].k_loc[1]
     u = (carriers[1].k_loc[0] * phis[0] - carriers[0].k_loc[0] * phis[1]) / det_a
     v = (carriers[0].k_loc[1] * phis[1] - carriers[1].k_loc[1] * phis[0]) / det_a
 
-    return fftinvgrad(-u, -v)
+    return fftinvgrad(-u, -v, cal)
 
 if __name__ == "__main__":
     import argparse
