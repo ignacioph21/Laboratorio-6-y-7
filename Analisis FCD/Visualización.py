@@ -22,12 +22,12 @@ hstar = hp*alpha   # [m]
 PXtoM = None       # [m] #TODO: Lo que era el factor de calibración cal
 square_size = 1e-3 # [m]
 
-scale_roi_kwargs = None
+scale_roi_kwargs = None # {"width": 500, "height": 500}
 roi = None
 
 i_teo = None
 
-# name = "gota6.png"   # <-- CAMBIAR ACÁ
+# name = "gota6.png"   # <-- CAMBIAR ACÁ #TODO: dejo para que pruebes y compares los resultados con los que tenés ahora
 
 # hp = 0.026          # [m]
 # alpha= 0.25
@@ -36,7 +36,7 @@ i_teo = None
 # PXtoM = 1e-3/13.7   # [m]
 # square_size = None  # [m]
 
-# scale_roi_kwargs = None
+# scale_roi_kwargs = {"width": 500, "height": 500}
 # roi = None
 
 # i_teo = None
@@ -54,7 +54,6 @@ flag = cv2.IMREAD_UNCHANGED
 i_ref = cv2.imread(str(reference_images_path.joinpath(name)), flag)
 i_def = cv2.imread(str(displaced_images_path.joinpath(name)), flag)
 i_teo = cv2.imread(str(theoreticals_image_path.joinpath(name)), flag)
-print(np.shape(i_ref))
 
 ## ROI: CROPPEAR IMAGEN
 if roi is None:
