@@ -12,45 +12,77 @@ from skimage.io import imread, imsave
 from pyfcd.fcd import calculate_carriers, fcd, normalize_image
 from pyfcd.auxiliars import selectSquareROI, plot_fft, plot_height_field
 
-cal = 1e-3/13.705308493589744    
+## CONFIG
+name = "sim_prueba.png"   # <-- CAMBIAR ACÁ
 
+hp = 3e-3          # [m]
+alpha= 0.25
+hstar = hp*alpha   # [m]
+
+PXtoM = None       # [m] #TODO: Lo que era el factor de calibración cal
+square_size = 1e-3 # [m]
+
+scale_roi_kwargs = None
 roi = None
-allowed_formats = "tiff, tif, bmp, png"  
 
-reference_images_path = f".{os.sep}Imagenes{os.sep}Referencias"  
-displaced_images_path = f".{os.sep}Imagenes{os.sep}Displaced"
-theoreticals_image_path = f".{os.sep}Imagenes{os.sep}Teoricas"
-name = "gota6.png"   
+i_teo = None
 
-i_ref = cv2.imread(reference_images_path + os.sep + name, cv2.IMREAD_UNCHANGED)
-i_def = cv2.imread(displaced_images_path + os.sep + name, cv2.IMREAD_UNCHANGED)
-i_teo = cv2.imread(theoreticals_image_path + os.sep + name, cv2.IMREAD_UNCHANGED)
+# name = "gota6.png"   # <-- CAMBIAR ACÁ
 
+# hp = 0.026          # [m]
+# alpha= 0.25
+# hstar = hp*alpha    # [m]
+
+# PXtoM = 1e-3/13.7   # [m]
+# square_size = None  # [m]
+
+# scale_roi_kwargs = None
+# roi = None
+
+# i_teo = None
+
+## CARGAR ARCHIVOS
+dir_path = Path(os.path.dirname(os.path.realpath(__file__)))
+images_path = dir_path.joinpath("Imagenes")
+
+reference_images_path = images_path.joinpath("Referencias")
+displaced_images_path = images_path.joinpath("Displaced")
+theoreticals_image_path = images_path.joinpath("Teoricas")
+output_image_path = images_path.joinpath("Output")
+
+flag = cv2.IMREAD_UNCHANGED
+i_ref = cv2.imread(str(reference_images_path.joinpath(name)), flag)
+i_def = cv2.imread(str(displaced_images_path.joinpath(name)), flag)
+i_teo = cv2.imread(str(theoreticals_image_path.joinpath(name)), flag)
+print(np.shape(i_ref))
+
+## ROI: CROPPEAR IMAGEN
 if roi is None:
-    roi = selectSquareROI("i_def: seleccionar region de interes", i_def) # Orden del roi: (x,y,w,h).   
+    roi = selectSquareROI("i_def: seleccionar region de interes", i_def, scale_kwargs=scale_roi_kwargs)
     cv2.destroyWindow("i_def: seleccionar region de interes")
     print("roi:", roi) # por si queremos volver a seleccionar la misma región
 
-i_ref = np.array(i_ref, dtype=np.float32)[roi[1]:roi[1]+roi[-1] , roi[0]:roi[0]+roi[-2]]  
-i_def = np.array(i_def, dtype=np.float32)[roi[1]:roi[1]+roi[-1] , roi[0]:roi[0]+roi[-2]]  
+x, y, w, h = roi
+i_ref = np.array(i_ref, dtype=np.float32)[y:y+h, x:x+w]  
+i_def = np.array(i_def, dtype=np.float32)[y:y+h, x:x+w]
 
+## VENTANA PARA MEJORAR FFT'S
 window1d = np.abs(tukey(roi[-1], 0.1))
-window2d = np.sqrt(np.outer(window1d,window1d))
+window2d = np.sqrt(np.outer(window1d, window1d))
 
 i_ref *= window2d
 i_def *= window2d
 
 plot_fft(i_ref, i_def)
 
+## ANALISIS FCD
 print(f'processing reference image...', end='') # TODO: Cambiar el texto.
-carriers = calculate_carriers(i_ref, cal, show_carriers=True)
+carriers = calculate_carriers(i_ref, PXtoM, square_size=square_size, show_carriers=True)
 print('done')
 
 t0 = time.time()
-height_field = fcd(i_def, carriers, cal, unwrap=True, show_angles=True) 
+height_field = fcd(i_def, carriers, h=hstar, unwrap=True, show_angles=False) 
 print(f'done in {time.time() - t0:.2}s\n')
 
-
-alpha = -0.026*0.25
-print(np.max(height_field/alpha)*1000)
-plot_height_field(height_field/alpha, i_teo, roi, cal)
+## GRAFICAR RESULTADO
+plot_height_field(height_field, i_teo=i_teo, roi=roi, PXtoM=carriers[0].PXtoM)

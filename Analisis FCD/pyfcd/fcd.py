@@ -19,8 +19,6 @@ import matplotlib.pyplot as plt
 
 from skimage.restoration import unwrap_phase
 
-
-
 def normalize_image(img):
     return (img - img.min()) / (img.max()-img.min())
 
@@ -29,48 +27,56 @@ def peak_mask(shape, pos, r):
     result[disk(pos, r, shape=shape)] = True
     return result
 
-
 def ccsgn(i_ref_fft, mask):
     return np.conj(ifft2(i_ref_fft * mask))
 
-
 @dataclass
 class Carrier:
+    PXtoM: float
     pixel_loc: array
     k_loc: array
     krad: float
     mask: array
     ccsgn: array
 
-
-
-def calculate_carriers(i_ref, cal=1, show_carriers = False): # 1/(2*np.pi) 
-    peaks = find_peaks(i_ref)
+def calculate_carriers(i_ref, PXtoM=None, square_size=None, show_carriers=False): 
+    peaks = find_peaks(i_ref) # Encontrar las coordenadas de los carriers
     peak_radius = np.linalg.norm(peaks[0] - peaks[1]) / 2
     i_ref_fft = fft2(i_ref)
 
     if show_carriers:
         plot_with_arrows(i_ref, peaks)
 
-    carriers = [Carrier(peak, pixel2kspace(i_ref.shape, peak, cal), peak_radius, mask, ccsgn(i_ref_fft, mask)) for mask, peak
-                in
-                [(ifftshift(peak_mask(i_ref.shape, peak, peak_radius)), peak) for peak in peaks]]
+    # Calibración
+    if PXtoM is None: 
+        PXtoM = 1
+
+    elif square_size is not None:
+        k_PX = np.concatenate([pixel2kspace(i_ref.shape, peaks[0]), pixel2kspace(i_ref.shape, peaks[1])])
+        lambda_PX = 2*np.pi/np.mean(np.abs(k_PX))
+        lambda_M = 2*square_size
+        PXtoM = lambda_M/lambda_PX
+
+    # Guardar carriers
+    carriers = [Carrier(PXtoM, peak, pixel2kspace(i_ref.shape, peak, PXtoM), peak_radius, mask, ccsgn(i_ref_fft, mask)) for mask, peak in [(ifftshift(peak_mask(i_ref.shape, peak, peak_radius)), peak) for peak in peaks]]
+    
     return carriers
 
 
-def fcd(i_def, carriers: List[Carrier], cal=1, show_angles = False, unwrap=False): # /(2*np.pi) 
+def fcd(i_def, carriers: List[Carrier], h=1, show_angles=False, unwrap=True): # /(2*np.pi) 
     i_def_fft = fft2(i_def)
 
     if show_angles:
         plot_angles(np.angle(ifft2(i_def_fft * carriers[0].mask) * carriers[0].ccsgn), np.angle(ifft2(i_def_fft * carriers[1].mask) * carriers[1].ccsgn))
     
-    phis = [-unwrap_phase(np.angle(ifft2(i_def_fft * c.mask) * c.ccsgn)) for c in carriers] if unwrap else [-np.angle(ifft2(i_def_fft * c.mask) * c.ccsgn) for c in carriers] # TODO: Acá agregué el unwrap.
+    phis = [-unwrap_phase(np.angle(ifft2(i_def_fft * c.mask) * c.ccsgn)) for c in carriers] if unwrap \
+            else [-np.angle(ifft2(i_def_fft * c.mask) * c.ccsgn) for c in carriers] # TODO: Acá agregué el unwrap.
 
     det_a = carriers[0].k_loc[1] * carriers[1].k_loc[0] - carriers[0].k_loc[0] * carriers[1].k_loc[1]
     u = (carriers[1].k_loc[0] * phis[0] - carriers[0].k_loc[0] * phis[1]) / det_a
     v = (carriers[0].k_loc[1] * phis[1] - carriers[1].k_loc[1] * phis[0]) / det_a
 
-    return fftinvgrad(-u, -v, cal)
+    return fftinvgrad(-u/h, -v/h, cal=carriers[0].PXtoM)
 
 if __name__ == "__main__":
     import argparse

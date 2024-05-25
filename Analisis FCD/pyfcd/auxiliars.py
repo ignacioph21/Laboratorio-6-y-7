@@ -44,29 +44,14 @@ def selectScaledROI(window_name, img, width=500, height=500):
     
     return (x_original, y_original, w_original, h_original)
 
-### Ejemplo de uso
-##def selectSquareROI(window_name, img, width=500, height=500):
-##    # Utiliza selectScaledROI para seleccionar un ROI escalado y convertirlo
-##    rect = selectScaledROI(window_name, img, width, height)
-##    
-##    # Extrae las coordenadas y dimensiones del ROI original
-##    x, y, w, h = rect
-##    
-##    # Encuentra la dimensión más pequeña (ancho o alto)
-##    size = min(w, h)
-##    
-##    # Ajusta el ROI seleccionado para que sea un cuadrado
-##    x_adjusted = x + (w - size) // 2
-##    y_adjusted = y + (h - size) // 2
-##    square_roi = (x_adjusted, y_adjusted, size, size)
-##    
-##    return square_roi
 
-
-def selectSquareROI(window_name, img, width=500, height=500):
+def selectSquareROI(window_name, img, scale_kwargs={"width": 500, "height": 500}):
     # Utiliza selectROI para seleccionar un ROI rectangular
-    rect = selectScaledROI(window_name, img, width, height) # cv2.
-    
+    if scale_kwargs is not None:
+        rect = selectScaledROI(window_name, img, **scale_kwargs) # cv2.
+    else:
+        rect = cv2.selectROI(window_name, img) #TODO: Organizar esto un poco.
+
     # Extrae las coordenadas y dimensiones del ROI
     x, y, w, h = rect
     
@@ -191,27 +176,27 @@ def process_sliced(sliced):
     # sliced /= max(sliced)
     return sliced
 
-def plot_height_field(height_field, i_teo=None, roi=None, cal=1):
+def plot_height_field(height_field, i_teo=None, roi=None, PXtoM=1):
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, figsize=(6, 8))
     
     # Plot de la imagen centrada y ocupando 3/4 de la altura
-    im = axs[0].imshow(height_field*1000, aspect='auto')
-    axs[0].hlines(height_field.shape[0] // 2, 0, height_field.shape[0+1], linestyle='--', linewidth=2, color='white')
+    im = axs[0].imshow(height_field, aspect='auto')
+    axs[0].hlines(height_field.shape[0]//2, 0, height_field.shape[1], linestyle='--', linewidth=2, color='white')
     fig.colorbar(im, ax=axs[0])  # Agregar barra lateral
-    axs[0].axis('off')  # Eliminar etiquetas de ejes x e y
-
+    axs[0].axis('off')           # Eliminar etiquetas de ejes x e y
+    axs[0].set_aspect("equal")
+    
     # Plot de la línea en el medio de la imagen
-    sliced =  process_sliced(height_field[height_field.shape[0] // 2, :])
-    axs[1].plot(np.linspace(-len(sliced)/2, len(sliced)/2, len(sliced))*cal*1000, sliced*1000, label="Resultado FCD.") # No sé si esto es x o y.    
+    sliced =  process_sliced(height_field[height_field.shape[0]//2,:])
+    axs[1].plot(np.linspace(-len(sliced)/2, len(sliced)/2, len(sliced))*PXtoM, sliced, label="Resultado FCD.")
 
     if not (i_teo is None):
         i_teo = np.array(i_teo, dtype=np.float32)[roi[1]:roi[1]+roi[-1] , roi[0]:roi[0]+roi[-2]]
         i_teo_sliced = i_teo[i_teo.shape[0] // 2, :]
         i_teo_sliced = process_sliced(i_teo_sliced)
-        # axs[1].plot(np.linspace(-len(i_teo_sliced)/2, len(i_teo_sliced)/2, len(i_teo_sliced))*cal*1000, i_teo_sliced*1000, label="Alturas teóricas.") # = 
         axs[1].legend()
 
-    axs[1].set_ylabel("altura [mm]")   
-    axs[1].set_xlabel("Posición [mm]")
+    axs[1].set_ylabel("Altura [m]")   
+    axs[1].set_xlabel("Posición [m]")
     plt.tight_layout()
     plt.show()

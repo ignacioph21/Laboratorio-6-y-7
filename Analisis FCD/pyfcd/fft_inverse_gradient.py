@@ -47,7 +47,7 @@ def fftinvgrad(fx, fy, cal):
 
     #  add mean slope back on
     y, x = np.meshgrid(range(size[0]), range(size[1]), indexing='ij') # 
-    f = f + mx*x*cal + my * y*cal #  
+    f = f + mx*x*cal + my*y*cal #  
 
 ##    # fix edges
 ##    f[:, 0] = (4 * f[:, 1] - f[:, 2] - 2 * fx_edge[:, 0]) / 3
