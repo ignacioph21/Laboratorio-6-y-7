@@ -180,9 +180,10 @@ def plot_height_field(height_field, i_teo=None, roi=None, PXtoM=1):
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, figsize=(6, 8))
     
     # Plot de la imagen centrada y ocupando 3/4 de la altura
-    im = axs[0].imshow(height_field, aspect='auto')
+    im = axs[0].imshow(height_field*1e3, aspect='auto')
     axs[0].hlines(height_field.shape[0]//2, 0, height_field.shape[1], linestyle='--', linewidth=2, color='white')
-    fig.colorbar(im, ax=axs[0])  # Agregar barra lateral
+    cbar = fig.colorbar(im, ax=axs[0])  # Agregar barra lateral
+    cbar.set_label('Altura [mm]', rotation=270, labelpad=15)
     axs[0].axis('off')           # Eliminar etiquetas de ejes x e y
     axs[0].set_aspect("equal")
     

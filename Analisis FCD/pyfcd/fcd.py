@@ -48,14 +48,14 @@ def calculate_carriers(i_ref, PXtoM=None, square_size=None, show_carriers=False)
         plot_with_arrows(i_ref, peaks)
 
     # Calibración
-    if PXtoM is None: 
-        PXtoM = 1
-
-    elif square_size is not None:
+    if (PXtoM is None) and (square_size is not None):
         k_PX = np.concatenate([pixel2kspace(i_ref.shape, peaks[0]), pixel2kspace(i_ref.shape, peaks[1])])
         lambda_PX = 2*np.pi/np.mean(np.abs(k_PX))
         lambda_M = 2*square_size
         PXtoM = lambda_M/lambda_PX
+
+    elif PXtoM is None: 
+        PXtoM = 1
 
     # Guardar carriers
     carriers = [Carrier(PXtoM, peak, pixel2kspace(i_ref.shape, peak, PXtoM), peak_radius, mask, ccsgn(i_ref_fft, mask)) for mask, peak in [(ifftshift(peak_mask(i_ref.shape, peak, peak_radius)), peak) for peak in peaks]]
