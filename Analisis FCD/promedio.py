@@ -11,49 +11,51 @@ from skimage.io import imread, imsave
 roi = None
 allowed_formats = "tiff, tif, bmp, png"  
 
-reference_images_path = "Referencias7"
-displaced_images_path = "Gotas7"
+for i in range(1, 8):
+    displaced_images_path = f"28_05/Barrido_una_gota_{i}mm"
+    reference_images_path = f"28_05/Barrido_una_gota_referencia/ID_0_202405_1144"
+    displaced_images_path = displaced_images_path + os.sep + os.listdir(displaced_images_path)[0]
 
-reference_images = os.listdir(reference_images_path)
-displaced_images = os.listdir(displaced_images_path)
-
-
-promediado_ref = np.zeros((1024, 1024)) 
-promediado_def = np.zeros((1024, 1024)) 
-max_iter = 100
-N = 0
+    reference_images = os.listdir(reference_images_path)
+    displaced_images = os.listdir(displaced_images_path)
 
 
-for (reference, displaced) in zip(reference_images, displaced_images): 
-    if reference[-3:] in allowed_formats and displaced[-3:] in allowed_formats:
-        if N > max_iter:
-            break
-        N += 1
+    promediado_ref = np.zeros((1024, 1024)) 
+    promediado_def = np.zeros((1024, 1024)) 
+    max_iter = 100
+    N = 0
 
-        i_ref = cv2.imread(reference_images_path + os.sep + reference, cv2.IMREAD_UNCHANGED)
-        i_def = cv2.imread(displaced_images_path + os.sep + displaced, cv2.IMREAD_UNCHANGED)
-        
-        i_ref = np.array(i_ref, dtype=np.float32)
-        i_def = np.array(i_def, dtype=np.float32)
 
-        promediado_ref += i_ref
-        promediado_def += i_def
+    for (reference, displaced) in zip(reference_images, displaced_images): 
+        if reference[-3:] in allowed_formats and displaced[-3:] in allowed_formats:
+            if N > max_iter:
+                break
+            N += 1
 
-promediado_ref /= N
-promediado_def /= N
+            i_ref = cv2.imread(reference_images_path + os.sep + reference, cv2.IMREAD_UNCHANGED)
+            i_def = cv2.imread(displaced_images_path + os.sep + displaced, cv2.IMREAD_UNCHANGED)
+            
+            i_ref = np.array(i_ref, dtype=np.float32)
+            i_def = np.array(i_def, dtype=np.float32)
 
-plt.subplot(121)
-plt.imshow(promediado_ref)
-plt.axis("off")
+            promediado_ref += i_ref
+            promediado_def += i_def
 
-plt.subplot(122)
-plt.imshow(promediado_def)
-plt.axis("off")
+    promediado_ref /= N
+    promediado_def /= N
 
-plt.show()
+    plt.subplot(121)
+    plt.imshow(promediado_ref)
+    plt.axis("off")
 
-name = input("Nombre de las fotos: ")
-imsave(f"Imagenes{os.sep}Referencias{os.sep}{name}.png", (promediado_ref).astype(np.uint8))
-imsave(f"Imagenes{os.sep}Displaced{os.sep}{name}.png", (promediado_def).astype(np.uint8))
+    plt.subplot(122)
+    plt.imshow(promediado_def)
+    plt.axis("off")
 
-plt.show()
+    plt.show()
+
+    name = f"0528-Barrido_una_gota_{i}mm" #input("Nombre de las fotos: ")
+    imsave(f"Analisis FCD{os.sep}Imagenes{os.sep}Referencias{os.sep}{name}.png", (promediado_ref).astype(np.uint8))
+    imsave(f"Analisis FCD{os.sep}Imagenes{os.sep}Displaced{os.sep}{name}.png", (promediado_def).astype(np.uint8))
+
+    plt.show()

@@ -176,20 +176,24 @@ def process_sliced(sliced):
     # sliced /= max(sliced)
     return sliced
 
-def plot_height_field(height_field, i_teo=None, roi=None, PXtoM=1):
+def plot_height_field(output_name, height_field, i_teo=None, roi=None, PXtoM=1):
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, figsize=(6, 8))
-    
+    plt.suptitle(output_name)
     # Plot de la imagen centrada y ocupando 3/4 de la altura
     im = axs[0].imshow(height_field*1e3, aspect='auto')
-    axs[0].hlines(height_field.shape[0]//2, 0, height_field.shape[1], linestyle='--', linewidth=2, color='white')
+
+    maximum = np.argwhere(height_field == np.max(height_field))[0]
+
+    axs[0].hlines(maximum[0], 0, height_field.shape[1], linestyle='--', linewidth=2, color='white')
     cbar = fig.colorbar(im, ax=axs[0])  # Agregar barra lateral
     cbar.set_label('Altura [mm]', rotation=270, labelpad=15)
     axs[0].axis('off')           # Eliminar etiquetas de ejes x e y
     axs[0].set_aspect("equal")
     
     # Plot de la línea en el medio de la imagen
-    sliced =  process_sliced(height_field[height_field.shape[0]//2,:])
-    axs[1].plot(np.linspace(-len(sliced)/2, len(sliced)/2, len(sliced))*PXtoM, sliced, label="Resultado FCD.")
+    sliced =  process_sliced(height_field[maximum[0],:])
+    x_px = np.linspace(-len(sliced)/2, len(sliced)/2, len(sliced))
+    axs[1].plot((x_px-x_px[maximum[1]])*PXtoM, sliced, label="Resultado FCD.")
 
     if not (i_teo is None):
         i_teo = np.array(i_teo, dtype=np.float32)[roi[1]:roi[1]+roi[-1] , roi[0]:roi[0]+roi[-2]]
@@ -200,4 +204,5 @@ def plot_height_field(height_field, i_teo=None, roi=None, PXtoM=1):
     axs[1].set_ylabel("Altura [m]")   
     axs[1].set_xlabel("Posición [m]")
     plt.tight_layout()
+    plt.savefig(output_name, dpi=200)
     plt.show()

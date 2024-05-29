@@ -8,16 +8,6 @@ from scipy.fft import fft2, ifft2
 def fftinvgrad(fx, fy, cal):
     size = fx.shape
 
-##    # add impulse to boundaries to compensate for non-periodicity
-##    imp_i_x = - 0.5 * np.sum(fx[:, 1:-1], axis=1)
-##    imp_i_y = - 0.5 * np.sum(fy[1:-1,:], axis=0)
-##    fx_edge = fx[:,[0,-1]]
-##    fy_edge = fy[[0, -1],:]
-##    fx[:, 0] = imp_i_x
-##    fx[:, -1] = imp_i_x
-##    fy[0,:] = imp_i_y
-##    fy[-1,:] = imp_i_y
-
     # the fourier method will implicitly subtract mean from gradient to satisfy
     # the periodicity assumption, we will tag it back on later
     mx = np.mean(fx)
@@ -47,11 +37,6 @@ def fftinvgrad(fx, fy, cal):
 
     #  add mean slope back on
     y, x = np.meshgrid(range(size[0]), range(size[1]), indexing='ij') # 
-    f = f + mx*x*cal + my*y*cal #  
+    # f = f + mx*x*cal**2 + my*y*cal**2 
 
-##    # fix edges
-##    f[:, 0] = (4 * f[:, 1] - f[:, 2] - 2 * fx_edge[:, 0]) / 3
-##    f[:, -1] = (4 * f[:, -1] - f[:, -2] + 2 * fx_edge[:, 1]) / 3
-##    f[0,:] = (4 * f[1,:] - f[2,:] - 2 * fy_edge[0,:]) / 3
-##    f[-1,:] = (4 * f[-1,:] - f[-2,:] + 2 * fy_edge[1,:]) / 3
     return f
