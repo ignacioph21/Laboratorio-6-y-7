@@ -22,7 +22,7 @@ alpha = 1-n_aire/n_agua
 
 square_size = 1e-3 # [m]    
 scale_roi_kwargs = None # {"width": 500, "height": 500}
-roi = (255, 287, 399, 399)
+roi = None
 
 i_teo = None
     
@@ -39,7 +39,7 @@ output_image_path = images_path.joinpath("Output")
 
 for i in range(1, 8):
     ## CONFIG
-    name = f"0528-Barrido_una_gota_{i}mm.png"   # <-- CAMBIAR ACÁ
+    name = f"0531-Barrido_una_gota_enfocada_{i}mm.png"   # <-- CAMBIAR ACÁ
     hp = (i-1)*1e-3*n_agua/n_aire + 1e-3*n_agua/n_vidrio
     hstar = hp*alpha   # [m]
 
@@ -82,11 +82,12 @@ for i in range(1, 8):
 
     ## GRAFICAR RESULTADO
     output_file = output_image_path.joinpath(name)
-    # plot_height_field(height_field, i_teo=i_teo, roi=roi, PXtoM=carriers[0].PXtoM, output_name=str(output_file))
+    plot_height_field(height_field, i_teo=i_teo, roi=roi, PXtoM=carriers[0].PXtoM, output_name=str(output_file))
     print(f"Factor de calibración: {1/carriers[0].PXtoM} px/m.")
 
     h_effs.append(hp*1e3)
     max_heights.append(np.max(height_field*1e3))
+    roi = None
 
 plt.scatter(h_effs, max_heights)
 plt.xlabel("Altura efectiva [mm]")

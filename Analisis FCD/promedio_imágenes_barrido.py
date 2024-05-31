@@ -12,10 +12,10 @@ roi = None
 allowed_formats = "tiff, tif, bmp, png"  
 
 for i in range(1, 8):
-    displaced_images_path = f"28_05/Barrido_una_gota_{i}mm"
-    reference_images_path = f"28_05/Barrido_una_gota_referencia"
-    displaced_images_path += os.sep + os.listdir(displaced_images_path)[0] if len(displaced_images_path)==1 else ""
-    reference_images_path += os.sep + os.listdir(reference_images_path)[0] if len(reference_images_path)==1 else "" 
+    displaced_images_path = f"31_05/Barrido_una_gota_{i}mm"
+    reference_images_path = f"31_05/Barrido_una_gota_referencia"
+    displaced_images_path += os.sep + os.listdir(displaced_images_path)[0]
+    reference_images_path += os.sep + os.listdir(reference_images_path)[0]
     
     reference_images = os.listdir(reference_images_path)
     displaced_images = os.listdir(displaced_images_path)
@@ -53,10 +53,10 @@ for i in range(1, 8):
     plt.imshow(promediado_def)
     plt.axis("off")
 
-    plt.show()
+    plt.close()
 
-    name = f"0528-Barrido_una_gota_{i}mm" #input("Nombre de las fotos: ")
+    name = f"0531-Barrido_una_gota_{i}mm" #input("Nombre de las fotos: ")
     imsave(f"Analisis FCD{os.sep}Imagenes{os.sep}Referencias{os.sep}{name}.png", (promediado_ref).astype(np.uint8))
     imsave(f"Analisis FCD{os.sep}Imagenes{os.sep}Displaced{os.sep}{name}.png", (promediado_def).astype(np.uint8))
 
-    plt.show()
+    #plt.show()

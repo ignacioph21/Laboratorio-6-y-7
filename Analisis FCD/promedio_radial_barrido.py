@@ -48,7 +48,7 @@ def radial_profile(data, center):
 
 
 for i in range(1, 8):
-    name = f"0528-Barrido_una_gota_{i}mm.png"     
+    name = f"0531-Barrido_una_gota_{i}mm.png"     
 
     flag = cv2.IMREAD_UNCHANGED
     i_ref = cv2.imread(str(reference_images_path.joinpath(name)), flag)
