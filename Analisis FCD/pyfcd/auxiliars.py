@@ -176,9 +176,9 @@ def process_sliced(sliced):
     # sliced /= max(sliced)
     return sliced
 
-def plot_height_field(output_name, height_field, i_teo=None, roi=None, PXtoM=1):
+def plot_height_field(height_field, i_teo=None, roi=None, PXtoM=1, output_name=None):
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]}, figsize=(6, 8))
-    plt.suptitle(output_name)
+    # plt.suptitle(output_name)
     # Plot de la imagen centrada y ocupando 3/4 de la altura
     im = axs[0].imshow(height_field*1e3, aspect='auto')
 
@@ -204,5 +204,8 @@ def plot_height_field(output_name, height_field, i_teo=None, roi=None, PXtoM=1):
     axs[1].set_ylabel("Altura [m]")   
     axs[1].set_xlabel("Posición [m]")
     plt.tight_layout()
-    plt.savefig(output_name, dpi=200)
+
+    if not (output_name is None):
+        plt.savefig(output_name, dpi=200)
+        
     plt.show()

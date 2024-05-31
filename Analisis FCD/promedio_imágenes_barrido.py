@@ -13,9 +13,10 @@ allowed_formats = "tiff, tif, bmp, png"
 
 for i in range(1, 8):
     displaced_images_path = f"28_05/Barrido_una_gota_{i}mm"
-    reference_images_path = f"28_05/Barrido_una_gota_referencia/ID_0_202405_1144"
-    displaced_images_path = displaced_images_path + os.sep + os.listdir(displaced_images_path)[0]
-
+    reference_images_path = f"28_05/Barrido_una_gota_referencia"
+    displaced_images_path += os.sep + os.listdir(displaced_images_path)[0] if len(displaced_images_path)==1 else ""
+    reference_images_path += os.sep + os.listdir(reference_images_path)[0] if len(reference_images_path)==1 else "" 
+    
     reference_images = os.listdir(reference_images_path)
     displaced_images = os.listdir(displaced_images_path)
 
