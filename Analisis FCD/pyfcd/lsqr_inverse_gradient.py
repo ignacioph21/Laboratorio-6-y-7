@@ -52,7 +52,7 @@ def gradient(f, ds=1):
 
     return fx, fy
 
-def lsqrinvgrad(fx, fy, ds=1):
+def lsqrinvgrad(fx, fy, cal=1):
     if fx.shape != fy.shape:
         raise Exception("lsqrinvgrad: fx and fy must have the same shape.")
     if fx.shape[0] != fx.shape[1]:
@@ -65,6 +65,6 @@ def lsqrinvgrad(fx, fy, ds=1):
     df[:M] = np.reshape(fx, M)
     df[M:] = np.reshape(fy, M)
 
-    G = sparse_gradient_operator(N, ds)
+    G = sparse_gradient_operator(N, cal)
     f = lsqr(G, df)[0]
     return np.reshape(f, (N,N))
