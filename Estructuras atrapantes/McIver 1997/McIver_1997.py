@@ -36,11 +36,12 @@ def integral2(r, y):
 
 def psi1(r,y):
     M = lambda r,y: r*np.exp(-y)*sp.jv(1,r)*sp.hankel1(0,c)
-    return -4*np.pi**2*1j*c*M(r,y) - 8*c*r * integral1(r,y) + L(np.abs(r-c),y,a) / (2*np.sqrt(r*c))
+    return -4*np.pi**2*1j*c*M(r,y) - 8*c*r * ( integral1(r,y) + L(np.abs(r-c),y,a) / (2*np.sqrt(r*c)) ) # TODO: agregue un parentesis, revisar
+
 
 def psi2(r,y):
     M = lambda r,y: r*np.exp(-y)*sp.jv(0,c)*sp.hankel1(1,r)
-    return -4*np.pi**2*1j*c*M(r,y) + 8*c*r * integral2(r,y) + L(np.abs(r-c),y,a) / (2*np.sqrt(r*c))
+    return -4*np.pi**2*1j*c*M(r,y) + 8*c*r * ( integral2(r,y) + L(np.abs(r-c),y,a) / (2*np.sqrt(r*c)) ) # TODO: agregue un parentesis, revisar
 
 def psi(r,y):
     sol = np.zeros(np.shape(r))

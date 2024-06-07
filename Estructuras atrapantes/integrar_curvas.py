@@ -13,7 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import bisect, minimize_scalar
 from scipy.special import jn_zeros
-from fuciones_corriente import McIver1997, Hulme1983
+from funciones_corriente import McIver1997, Hulme1983
 
 class NoRootsFoundError(Exception):
     pass
@@ -185,15 +185,14 @@ def circular_guide(center_point, orientation):
 if __name__ == "__main__":  
     g = 9.8       # m/s^2
     w = 5*2*np.pi # Hz
-    K = w**2/g  # 1/m
+    K = w**2/g    # 1/m
     h = 0.01      # m
     d = K*h
     c = jn_zeros(0,1)[0]
-    print(d)
-    psi = Hulme1983(R=c, d=d, N=200).psi
+    psi = McIver1997(R=c, a=100).psi
 
-    l = 16
-    f = lambda x, y: psi(x,y) - l
+    l = 12
+    f = lambda x, y: np.real(psi(x,y) - l)
 
     ds = 2e-2
     y_bounds = (0, 2*d)

@@ -28,7 +28,7 @@ def psi(r,y):
     idxplus = r>c
     idxminus = r<c
     M = r*np.exp(-y)*sp.jv(idxminus,rminus)*sp.hankel1(idxplus,rplus)
-    return -4*np.pi**2*1j*c*M + (-1)**idxminus * 8*c*r * vectorized_integral(rplus, rminus, idxplus, idxminus,y)  + L(np.abs(r-c),y,a) / (2*np.sqrt(r*c))
+    return -4*np.pi**2*1j*c*M + (-1)**idxminus * 8*c*r * ( vectorized_integral(rplus, rminus, idxplus, idxminus,y)  + L(np.abs(r-c),y,a) / (2*np.sqrt(r*c)) ) # TODO: acá agregué un paréntesis, revisar
 
 c = sp.jn_zeros(0,1)
 a = 25
