@@ -182,7 +182,7 @@ def plot_height_field(height_field, i_teo=None, roi=None, PXtoM=1, output_name=N
     # Plot de la imagen centrada y ocupando 3/4 de la altura
     im = axs[0].imshow(height_field*1e3, aspect='auto')
 
-    maximum = np.argwhere(height_field == np.max(height_field))[0]
+    maximum = np.argwhere(height_field == np.min(height_field))[0]
 
     axs[0].hlines(maximum[0], 0, height_field.shape[1], linestyle='--', linewidth=2, color='white')
     cbar = fig.colorbar(im, ax=axs[0])  # Agregar barra lateral
