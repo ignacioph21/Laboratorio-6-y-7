@@ -12,12 +12,11 @@ from skimage.io import imread, imsave
 
 from pyfcd.fcd import calculate_carriers, fcd, normalize_image
 from pyfcd.auxiliars import selectSquareROI, plot_fft, plot_height_field
-from pyfcd.mask import masked
 
 # CONFIG 
-i_ref_name = f"Imagenes{os.sep}Referencias{os.sep}0611_Toroide_quieto.png" 
-i_def_pattern = f"E:{os.sep}Ignacio Hernando{os.sep}11_06{os.sep}Toroide_260ms_2{os.sep}202406_1306" # <-- CAMBIAR ACÁ (poner carpeta en Images/Displaced)
-start = 1
+i_ref_name = "0611-gota_con_jeringa.png"   # <-- CAMBIAR ACÁ (poner en Images/Referencias)
+i_def_pattern = "gota_con_jeringa/202406_1457/*.bmp" # <-- CAMBIAR ACÁ (poner carpeta en Images/Displaced)
+start = 2600
 
 hp = 0.1              # [m]
 alpha = 0.25
@@ -29,11 +28,18 @@ square_size = 2.2e-3  # [m]
 scale_roi_kwargs = None # {"width": 500, "height": 500}
 roi = None
 
-images = os.listdir(i_def_pattern)
+## CARGAR ARCHIVOS
+dir_path = Path(os.path.dirname(os.path.realpath(__file__)))
+
+images_path = dir_path.joinpath("Imagenes")
+output_image_path = images_path.joinpath("Output")
+reference_images_path = images_path.joinpath("Referencias")
+displaced_images_path = images_path.joinpath("Displaced")
+images = sorted([str(f) for f in displaced_images_path.glob(i_def_pattern)])
 
 flag = cv2.IMREAD_UNCHANGED
-i_ref = cv2.imread(i_ref_name, flag)
-i_def = cv2.imread(i_def_pattern + os.sep + images[start], flag)
+i_ref = cv2.imread(str(reference_images_path.joinpath(i_ref_name)), flag)
+i_def = cv2.imread(images[start], flag)
 
 if roi is None:
     roi = selectSquareROI("i_def: seleccionar region de interes", i_def) # Orden del roi: (x,y,w,h).   
@@ -43,8 +49,6 @@ if roi is None:
 x, y, w, h = roi
 i_ref = np.array(i_ref, dtype=np.float32)[y:y+h, x:x+w]  
 i_def = np.array(i_def, dtype=np.float32)[y:y+h, x:x+w]
-
-i_def = masked(i_def, i_ref)
 
 window1dx = np.abs(tukey(roi[-1], 0.2))
 window1dy = np.abs(tukey(roi[-2], 0.2))
@@ -56,22 +60,17 @@ i_def *= window2d
 carriers = calculate_carriers(i_ref, PXtoM, square_size=square_size, show_carriers=False)
 
 fig = plt.figure( figsize=(8,8) )
-plt.subplot(121)
-im_original = plt.imshow(i_def)
-plt.subplot(122)
-im = plt.imshow(fcd(i_def, carriers, h=hstar, unwrap=True, show_angles=False), vmin=-0.0007, vmax=0.0007) # TODO: hay que definir bien los máximons y mínimos para que no sature. 
+im = plt.imshow(fcd(i_def, carriers, h=hstar, unwrap=True, show_angles=False))
 
 def update(frame):
-    i_def = cv2.imread(i_def_pattern + os.sep + images[start+frame], flag)
+    i_def = cv2.imread(images[start+frame], flag)
     i_def = np.array(i_def, dtype=np.float32)[y:y+h, x:x+w]
-    i_def = masked(i_def, i_ref, N=15)
     i_def *= window2d
 
     height_field = fcd(i_def, carriers, h=hstar, unwrap=True, show_angles=False) 
     im.set_array(height_field)
-    im_original.set_array(i_def)
-    
-    return im_original, im, 
+
+    return im
 
 anim = animation.FuncAnimation(fig, 
                                update, 
