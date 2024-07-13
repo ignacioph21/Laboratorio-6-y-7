@@ -60,12 +60,32 @@ if __name__=="__main__":
 
     ts, vidifft = video_ifft(freqs, vidfft, fps=1000, freq_loc=f) # Transformada inversa quedandose con componentes en f
 
+    plt.title("Con video_ifft")
     plt.imshow(vidifft[:,:,R])
     plt.show()
     
     # Con video_freq_projection
     projected_video = video_freq_projection(height_fields, 1000, T = 1/f)
+    
+    plt.title("Con video_freq_projection")
     plt.imshow(projected_video[:,:,R])
     plt.show()
+
+    # Gráfico interactivo
+    plt.ion()
+
+    fig = plt.figure()
+    ax = plt.subplot()
+
+    l, = ax.plot(vidifft[0,:,R]) 
+    ax.set_ylim(np.min(vidifft),np.max(vidifft))
+
+    for frame in vidifft:
+        l.set_ydata(frame[:,R])
+        fig.canvas.draw()
+        fig.canvas.flush_events()
+        plt.pause(4e-3)
+
+    plt.ioff()
 
 

@@ -63,20 +63,25 @@ def calculate_carriers(i_ref, PXtoM=None, square_size=None, show_carriers=False)
     return carriers
 
 
-def fcd(i_def, carriers: List[Carrier], h=1, show_angles=False, unwrap=True): # /(2*np.pi) 
+def fcd(i_def, carriers: List[Carrier], h=1, show_angles=False, unwrap=True, fixed_loc=None, fixed_val=0):
     i_def_fft = fft2(i_def)
 
     if show_angles:
         plot_angles(np.angle(ifft2(i_def_fft * carriers[0].mask) * carriers[0].ccsgn), np.angle(ifft2(i_def_fft * carriers[1].mask) * carriers[1].ccsgn))
     
     phis = [-unwrap_phase(np.angle(ifft2(i_def_fft * c.mask) * c.ccsgn)) for c in carriers] if unwrap \
-            else [-np.angle(ifft2(i_def_fft * c.mask) * c.ccsgn) for c in carriers] # TODO: Acá agregué el unwrap.
+            else [-np.angle(ifft2(i_def_fft * c.mask) * c.ccsgn) for c in carriers] 
+            
 
     det_a = carriers[0].k_loc[1] * carriers[1].k_loc[0] - carriers[0].k_loc[0] * carriers[1].k_loc[1]
     u = (carriers[1].k_loc[0] * phis[0] - carriers[0].k_loc[0] * phis[1]) / det_a
     v = (carriers[0].k_loc[1] * phis[1] - carriers[1].k_loc[1] * phis[0]) / det_a
 
-    return fftinvgrad(-u/h, -v/h, cal=carriers[0].PXtoM)
+    height_map = fftinvgrad(-u/h, -v/h, cal=carriers[0].PXtoM)
+    if fixed_loc is not None: 
+        height_map = height_map - height_map[fixed_loc[0],fixed_loc[1]] + fixed_val
+
+    return height_map
 
 if __name__ == "__main__":
     import argparse
