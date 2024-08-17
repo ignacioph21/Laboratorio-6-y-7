@@ -1,7 +1,6 @@
-from pyfcd.auxiliars import selectSquareROI
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
-from Tracking_blur import * 
+from tracking import * 
 import numpy as np
 import cv2
 import os
@@ -30,22 +29,23 @@ if roi is None:
 i_ref = crop_image(i_ref, roi).astype(np.float32)
 
 """ Toride de referencia """
-template = center_and_crop(i_tor, roi)
+template = center_and_crop(i_tor, roi, rotate=45)
+# template = add_salt_and_pepper_noise(template, noise_ratio=0.1)
 toroid_mask = mask(template)
 
 """ Trackeo """
-i_def, c = track(template, i_def)
+last, search_roi, c = track_optimized(template, i_def)
 centers = [c]
 
 fig = plt.figure( figsize=(8,8) )
-im = plt.imshow(i_def) 
-
+im = plt.imshow(last) 
 
 def update(frame):
+    global search_roi, last
     i_def_raw = cv2.imread(i_def_pattern + os.sep + images[start+frame], flag)
-    i_def_raw, c = track(template, i_def_raw) # "! .astype(np.float32)
+    last, search_roi, c = track_optimized(template, i_def_raw, search_roi, factor=2) 
     centers.append(c)
-    im.set_array(i_def_raw)
+    im.set_array(last)
 
     return im, 
 
